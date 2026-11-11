@@ -661,7 +661,8 @@ function M.check(target)
 		return
 	end
 
-	local items, n_err, n_warn, n_steps, n_files_ok = {}, 0, 0, 0, 0
+	local items, n_err, n_warn, n_steps, n_files_ok, n_skipped = {}, 0, 0, 0, 0, 0
+	local bulk = not (target and target ~= "")
 
 	for _, f in ipairs(files) do
 		local slug = vim.fn.fnamemodify(f.path, ":t:r")
@@ -686,7 +687,12 @@ function M.check(target)
 			ok_dec, spec = pcall(vim.json.decode, table.concat(raw, "\n"))
 		end
 		if not ok_dec or type(spec) ~= "table" or type(spec.steps) ~= "table" or #spec.steps == 0 then
-			add("err", f.path, 1, nil, "spec 读不到或解析失败（没有 steps）")
+			if bulk then
+				-- 目录里混进来的普通 JSON（不是 spec）不算问题，不然 /tmp 里几十个文件全成了报错
+				n_skipped = n_skipped + 1
+			else
+				add("err", f.path, 1, nil, "spec 读不到或解析失败（没有 steps）")
+			end
 		else
 			local repo = vim.fn.fnamemodify((spec.repo and spec.repo ~= "") and spec.repo or vim.fn.getcwd(), ":p")
 			local before = n_err
@@ -728,20 +734,22 @@ function M.check(target)
 		end
 	end
 
+	local skipped_note = n_skipped > 0 and string.format("，跳过 %d 个非 spec JSON", n_skipped) or ""
 	vim.fn.setloclist(0, {}, " ", { title = "pi-tour check", items = items })
 	if #items == 0 then
-		vim.notify(string.format("pi-tour check: %d 份 spec · %d 站全部可用", #files, n_steps), vim.log.levels.INFO)
+		vim.notify(string.format("pi-tour check: %d 份 spec · %d 站全部可用%s", #files, n_steps, skipped_note), vim.log.levels.INFO)
 		return
 	end
 
 	pcall(vim.cmd, "silent! lopen")
 	vim.notify(
 		string.format(
-			"pi-tour check: %d/%d 份可用 · %d 站失效 / %d 处漂移（列表已进 loclist，Enter 跳转）",
+			"pi-tour check: %d/%d 份可用 · %d 站失效 / %d 处漂移（列表已进 loclist，Enter 跳转）%s",
 			n_files_ok,
 			#files,
 			n_err,
-			n_warn
+			n_warn,
+			skipped_note
 		),
 		n_err > 0 and vim.log.levels.WARN or vim.log.levels.INFO
 	)
