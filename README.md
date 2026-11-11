@@ -13,8 +13,15 @@
 |---|---|
 | `nvim/lua/pi_tour/init.lua` | Neovim 插件本体（由 `~/.config/nvim/lua/plugins/pi-tour.lua` 加载） |
 | `render.mjs` | spec → 单文件 HTML 代码地图，无依赖 |
-| `out/` | 想长期留档的 HTML（`/tmp` 会被系统清理） |
+| `skills/code-tour/SKILL.md` | agent 侧的 spec 生产契约（仓库是**权威副本**） |
+| `out/` | 想长期留档的 HTML（`/tmp` 会被系统清理）——已 gitignore |
 | `/tmp/pi-tours/<slug>.json` | 运行时 spec 的默认目录，`:PiTour list` 扫这里 |
+
+> **skill 的方向是反的**：正文放在仓库里（`skills/code-tour/SKILL.md`），`~/.pi/agent/pi-hermes-memory/skills/code-tour` 是指回仓库的 symlink。原因是 Pi 只从后者加载 skill，而 Pi 的加载器会显式跟随 symlink（`dist/core/skills.js`：“For symlinks, check if they point to a directory and follow them”），所以只有一份正文、且随仓库版本化。换机器 clone 后需要重建这条 symlink：
+>
+> ```bash
+> ln -s ../../tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
+> ```
 
 ## 快捷键
 
