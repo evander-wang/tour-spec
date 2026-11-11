@@ -40,7 +40,7 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 
 ```json
 {
-  "repo": "/Users/wangjichao/pi-tours",
+  "repo": "/Users/wangjichao/src/pi-tours",
   "name": "手写示例：render.mjs 怎么读 spec",
   "steps": [
     {
