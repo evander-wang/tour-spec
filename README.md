@@ -30,9 +30,42 @@ skill 正文就在本仓库的 `skills/code-tour/SKILL.md`，把它挂到 Pi 的
 ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
 ```
 
-验证：新开一个 Pi 会话，看 skill 列表里有 `code-tour`（或直接问「有哪些 code tour 相关的 skill」）。
+验证：新开一个 Pi 会话，看 skill 列表里有 `code-tour`（或直接问「有哪些 code tour 相关的 skill」）。确定性验法见 `CONTRIBUTING.md`。
 
-> 这个仓库**不自己做包分发**，所以 skill 的挂在哪台机器上都得自己建这条 symlink；也没提供依赖检查脚本。
+> 这个仓库**不自己做包分发**：skill 在哪台机器上挂，都得自己建这条 symlink；也没有依赖检查脚本。
+
+### 没装 skill 时：手写 spec 的最小示例
+
+存成 `/tmp/pi-tours/hello.json`，直接 `:PiTour load /tmp/pi-tours/hello.json` 就能跑（下面这份以本仓库的 `render.mjs` 为标的，实测可载入、`:PiTour check` 无告警）：
+
+```json
+{
+  "repo": "/Users/wangjichao/pi-tours",
+  "name": "手写示例：render.mjs 怎么读 spec",
+  "steps": [
+    {
+      "file": "render.mjs",
+      "start": 25,
+      "end": 29,
+      "layer": "entry",
+      "title": "先取参数：spec 路径、--out、--open",
+      "why": "手写 spec 最容易漏的是两个相对关系：file 相对 repo，start 是 1-based。",
+      "anchor": "const argv = process.argv.slice(2);"
+    },
+    {
+      "file": "render.mjs",
+      "start": 40,
+      "end": 47,
+      "layer": "data",
+      "title": "读 spec 并 JSON.parse，坏 JSON 直接报错退出",
+      "why": "解析失败就退出，不会带着半份 spec 继续渲染。",
+      "anchor": "const raw = fs.readFileSync(specPath, \"utf8\");"
+    }
+  ]
+}
+```
+
+只需记住三条：`repo` 是仓库根，`file` 相对 `repo`，`anchor` 必填（该范围首行的原文）。写完先跑 `:PiTour check /tmp/pi-tours/hello.json` 确认 anchor 能命中。
 
 ## 快捷键
 
