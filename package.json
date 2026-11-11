@@ -1,0 +1,11 @@
+{
+  "name": "pi-tours",
+  "version": "0.1.0",
+  "description": "Code tour: turn a call chain into a step-through walkthrough in Neovim (badges, quickfix, why-bar) plus a self-contained HTML code map. Includes the code-tour skill that teaches the agent how to write the spec.",
+  "license": "MIT",
+  "keywords": ["pi-package", "code-tour", "neovim"],
+  "pi": {
+    "skills": ["./skills"]
+  },
+  "files": ["README.md", "render.mjs", "nvim/", "skills/"]
+}
