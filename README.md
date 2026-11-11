@@ -14,15 +14,14 @@
 | `nvim/lua/pi_tour/init.lua` | Neovim 插件本体 |
 | `nvim/pi-tour.lua` | lazy.nvim 插件声明（拷／symlink 到 `~/.config/nvim/lua/plugins/`） |
 | `render.mjs` | spec → 单文件 HTML 代码地图，无依赖 |
-| `skills/code-tour/SKILL.md` | agent 侧的 spec 生产契约（仓库是**权威副本**） |
+| `skills/code-tour/SKILL.md` | agent 侧的 spec 生产契约；由 `package.json` 的 `pi.skills` 声明，`pi install` 后自动加载 |
+| `package.json` | Pi 包清单（`pi.skills → ./skills`），使本仓库可以 `pi install git:github.com/evander-wang/pi-tours` |
 | `out/` | 想长期留档的 HTML（`/tmp` 会被系统清理）——已 gitignore |
 | `/tmp/pi-tours/<slug>.json` | 运行时 spec 的默认目录，`:PiTour list` 扫这里 |
 
-> **skill 的方向是反的**：正文放在仓库里（`skills/code-tour/SKILL.md`），`~/.pi/agent/pi-hermes-memory/skills/code-tour` 是指回仓库的 symlink。原因是 Pi 只从后者加载 skill，而 Pi 的加载器会显式跟随 symlink（`dist/core/skills.js`：“For symlinks, check if they point to a directory and follow them”），所以只有一份正文、且随仓库版本化。换机器 clone 后需要重建这条 symlink：
+> **仓库就是唯一源**：开发副本在 `~/src/pi-tours`，`~/.pi/agent/tours` 是指向它的 symlink（nvim 插件声明用这个稳定路径）。skill 不再手工 symlink 到 `pi-hermes-memory/skills/`——那种做法会在 skill 名上造成两份来源，Pi 只会报 `name "code-tour" collision` 并让先扫到的那份胜出。
 >
-> ```bash
-> ln -s ../../tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
-> ```
+> 因此 skill 的编辑循环是：改 `skills/code-tour/SKILL.md` → commit + push → `pi update git:github.com/evander-wang/pi-tours`。**不要用 `skill_manage` 改这个 skill**，它会往 `pi-hermes-memory/skills/` 写第二份同名副本。nvim / HTML 那两边不受影响，symlink 直指开发副本，改完即生效。
 
 ## 快捷键
 
@@ -73,27 +72,37 @@
 
 ## 在新机器上安装
 
-下面 4 步已在干净目录（空 `~/.pi/agent`、空 nvim 配置）里从头跑通过。
+下面四步在干净环境里验证过（空 `~/.pi/agent`、空 nvim 配置、无旧 symlink）。
 
 ```bash
-# 1) 仓库固定放在这个路径（插件声明和 skill symlink 都指向它）
-git clone git@github.com:evander-wang/pi-tours.git ~/.pi/agent/tours
+# 1) 开发副本放 ~/src（也就是原始仓库）
+git clone git@github.com:evander-wang/pi-tours.git ~/src/pi-tours
 
-# 2) 让 Pi 的 skill 加载路径指回仓库
-mkdir -p ~/.pi/agent/pi-hermes-memory/skills
-ln -s ../../tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
+# 2) 给 nvim 一个稳定路径（插件声明里的 dir 与 README 示例都指向它）
+ln -s ~/src/pi-tours ~/.pi/agent/tours
 
-# 3) 让 Neovim 启动时加载插件（symlink 或 cp 都行）
+# 3) 让 Pi 托管 skill（自己 clone 一份到 ~/.pi/agent/git/...）
+pi install git:github.com/evander-wang/pi-tours
+
+# 4) 让 Neovim 启动时加载插件（symlink 或 cp 都行）
 mkdir -p ~/.config/nvim/lua/plugins
 ln -s ~/.pi/agent/tours/nvim/pi-tour.lua ~/.config/nvim/lua/plugins/pi-tour.lua
 
-# 4) spec 目录（agent 会往这里写；也可 --out 到别处长期留档）
+# 5) spec 目录（agent 会往这里写；也可 --out 到别处长期留档）
 mkdir -p /tmp/pi-tours
 ```
 
-验一下：重启 nvim 后 `:PiTour status` 不报错、`<leader>To` 能弹出选择器；`node ~/.pi/agent/tours/render.mjs <spec.json> --open` 能出 HTML。
+验一下：`pi list | grep pi-tours` 有输出；重启 nvim 后 `:PiTour status` 不报错、`<leader>To` 能弹选择器；`node ~/.pi/agent/tours/render.mjs <spec.json> --open` 能出 HTML。
 
-克隆到别的位置也能用，但要改两处：`nvim/pi-tour.lua` 里的 `dir`，以及第 2 步 symlink 的相对路径。
+不想用包安装（比如只是本机自用、想改 skill 即时生效），可以退回去手工 symlink：`ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour`，但**不要和 `pi install` 同时用**（同名 skill 会撞）。
+
+## 开发循环
+
+| 改什么 | 怎么生效 |
+|---|---|
+| `nvim/lua/pi_tour/init.lua` | 即时（nvim 的 `dir` 指向 symlink → 开发副本；重开 nvim 即可） |
+| `render.mjs` | 即时（每次 `node` 都是新进程） |
+| `skills/code-tour/SKILL.md` | commit + push → `pi update git:github.com/evander-wang/pi-tours`（或 `/reload`） |
 
 ## 用法
 
