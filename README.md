@@ -11,7 +11,8 @@
 
 | 路径 | 作用 |
 |---|---|
-| `nvim/lua/pi_tour/init.lua` | Neovim 插件本体（由 `~/.config/nvim/lua/plugins/pi-tour.lua` 加载） |
+| `nvim/lua/pi_tour/init.lua` | Neovim 插件本体 |
+| `nvim/pi-tour.lua` | lazy.nvim 插件声明（拷／symlink 到 `~/.config/nvim/lua/plugins/`） |
 | `render.mjs` | spec → 单文件 HTML 代码地图，无依赖 |
 | `skills/code-tour/SKILL.md` | agent 侧的 spec 生产契约（仓库是**权威副本**） |
 | `out/` | 想长期留档的 HTML（`/tmp` 会被系统清理）——已 gitignore |
@@ -69,6 +70,30 @@
 | `E` 文件不存在 | 文件被改名/移动/删除 | 改 `file` 路径 |
 | `W` 行号漂移 | 锚点命中，但落在与 spec 不同的行（已被自动修正） | 不用管，看情况回写 spec |
 | `W` range 超界 | `end` 超过文件实际行数 | 把 `end` 改小 |
+
+## 在新机器上安装
+
+下面 4 步已在干净目录（空 `~/.pi/agent`、空 nvim 配置）里从头跑通过。
+
+```bash
+# 1) 仓库固定放在这个路径（插件声明和 skill symlink 都指向它）
+git clone git@github.com:evander-wang/pi-tours.git ~/.pi/agent/tours
+
+# 2) 让 Pi 的 skill 加载路径指回仓库
+mkdir -p ~/.pi/agent/pi-hermes-memory/skills
+ln -s ../../tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
+
+# 3) 让 Neovim 启动时加载插件（symlink 或 cp 都行）
+mkdir -p ~/.config/nvim/lua/plugins
+ln -s ~/.pi/agent/tours/nvim/pi-tour.lua ~/.config/nvim/lua/plugins/pi-tour.lua
+
+# 4) spec 目录（agent 会往这里写；也可 --out 到别处长期留档）
+mkdir -p /tmp/pi-tours
+```
+
+验一下：重启 nvim 后 `:PiTour status` 不报错、`<leader>To` 能弹出选择器；`node ~/.pi/agent/tours/render.mjs <spec.json> --open` 能出 HTML。
+
+克隆到别的位置也能用，但要改两处：`nvim/pi-tour.lua` 里的 `dir`，以及第 2 步 symlink 的相对路径。
 
 ## 用法
 
