@@ -86,7 +86,7 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 :PiTour load /tmp/pi-tours/<slug>.json   " 载入（或 :PiTour load 后 Tab 补全）
 :PiTour list                             " 选择器：切换已渲染过的 tour
 :PiTour check [path]                     " 体检 spec：anchor 还能不能命中（结果进 loclist）
-:PiTour sync [path]                      " 把锚点解出的真实行号写回 spec（锚点失效的不猜）
+:PiTour sync [--dry-run] [path]      " 把锚点解出的真实行号写回 spec（锚点失效的不猜）
 :PiTour rm <path>                        " 删除一份 spec + 同名 html（弹确认）
 :PiTour! rm <path>                       " 同上但跳过确认（无 UI 时只能用这个）
 :PiTour next | prev | goto <n>            " 步进
@@ -120,8 +120,18 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 `check` 只告诉你漂了多少，`sync` 把结果落回 spec：命中锚点的站，`start` 改成真实行号，`end` 按原来的站长同步平移（超文件末尾就钳住）。
 
 ```vim
-:PiTour sync                              " 同步 spec_dirs 里全部
+:PiTour sync                              " 同步 spec_dirs 里全部（直接写盘）
 :PiTour sync /tmp/pi-tours/xxx.json       " 只同步一份
+:PiTour sync --dry-run                    " 只看会改什么，不写（别名 -n）
+:PiTour sync -n /tmp/pi-tours/xxx.json    " 同上，指定单份
+```
+
+默认行为就是**自动写盘**（不需确认）；`--dry-run` 只输出将要发生的改动，文件一个字节不动。两种模式的输出格式相同，方便先看后执行：
+
+```
+  [runtime-to-settle] 站 8  start: 229 → 231
+  [runtime-to-settle] 站 8  end: 256 → 258
+pi-tour sync（试运行，未写入）: 1/1 份将有改动 · 2 处行号 · 0 份无变化
 ```
 
 三个边界：

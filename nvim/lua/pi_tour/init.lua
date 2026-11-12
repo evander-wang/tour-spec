@@ -8,13 +8,13 @@
 ---
 --- 用法（由 agent 或你自己调用）：
 ---   require("pi_tour").load("/tmp/pi-tours/xxx.json")
----   :PiTour load /tmp/pi-tours/xxx.json | list | check | sync | rm | next | prev | pick | stop | status
+---   :PiTour load <path> | list | check [path] | sync [--dry-run] [path] | rm <path> | next | prev | pick | stop | status
 ---   (:PiTour! rm <path> = 跳过确认直接删，无 UI 时只能用这个)
 ---
 --- 多份 spec 可以同时存在于磁盘，但同一时刻只有一份「活跃」导览：
 ---   :PiTour list（<leader>To）列出 spec_dirs 下的所有 spec，选中即切换。
 ---
---- spec 格式见 ~/.pi/agent/pi-hermes-memory/skills/code-tour/SKILL.md
+--- spec 格式见仓库里的 skills/code-tour/SKILL.md（~/.pi/agent/tours 是软链）
 
 local M = {}
 
@@ -806,7 +806,11 @@ end
 --- 把每站锚点解出的真实行号写回 spec。
 --- 锚点失效 / 文件缺失 / 没写 anchor 的站一律不动（不猜），单独列出等人改。
 --- @param target? string 指定 spec 路径；不传则同步 spec_dirs 里的全部
-function M.sync(target)
+--- @param target? string 指定 spec 路径；不传则同步 spec_dirs 里的全部
+--- @param opts? { dry_run?: boolean } dry_run 只报告会改什么，不写盘
+function M.sync(target, opts)
+	opts = opts or {}
+	local dry = opts.dry_run == true
 	local files
 	if target and target ~= "" then
 		files = { { path = vim.fn.fnamemodify(vim.fn.expand(target), ":p") } }
@@ -859,7 +863,9 @@ function M.sync(target)
 			elseif #changed == 0 then
 				unchanged = unchanged + 1
 			else
-				vim.fn.writefile(lines, f.path)
+				if not dry then
+					vim.fn.writefile(lines, f.path)
+				end
 				touched = touched + 1
 				total_fixes = total_fixes + #changed
 				for _, c in ipairs(changed) do
@@ -877,12 +883,21 @@ function M.sync(target)
 	end
 
 	if #problems == 0 then
-		vim.notify(string.format("pi-tour sync: %d 份 spec 无需改动", #files), vim.log.levels.INFO)
+		vim.notify(
+			string.format("pi-tour sync: %d 份 spec 无需改动%s", #files, dry and "（试运行）" or ""),
+			vim.log.levels.INFO
+		)
 		return
 	end
 
 	vim.notify(
-		string.format(
+		dry and string.format(
+			"pi-tour sync（试运行，未写入）: %d/%d 份将有改动 · %d 处行号 · %d 份无变化",
+			touched,
+			#files,
+			total_fixes,
+			unchanged
+		) or string.format(
 			"pi-tour sync: %d/%d 份已更新 · %d 处行号 · %d 份无变化",
 			touched,
 			#files,
@@ -1008,7 +1023,17 @@ function M.setup(opts)
 		elseif sub == "check" then
 			M.check(args[2])
 		elseif sub == "sync" then
-			M.sync(args[2])
+			-- :PiTour sync [--dry-run|-n] [path]
+			local rest, dry = {}, false
+			for i = 2, #args do
+				local a = args[i]
+				if a == "--dry-run" or a == "--dry" or a == "-n" then
+					dry = true
+				else
+					rest[#rest + 1] = a
+				end
+			end
+			M.sync(table.concat(rest, " "), { dry_run = dry })
 		elseif sub == "rm" or sub == "delete" then
 			M.delete(args[2], c.bang)
 		elseif sub == "stop" then
@@ -1023,7 +1048,7 @@ function M.setup(opts)
 	end, {
 		nargs = "*",
 		bang = true, -- :PiTour! rm <path> = 跳过确认
-		desc = "pi-tour: load <path> | list | check [path] | sync [path] | rm <path> | next | prev | pick | stop | reload | goto <n>",
+		desc = "pi-tour: load <path> | list | check [path] | sync [--dry-run] [path] | rm <path> | next | prev | pick | stop | reload | goto <n>",
 		-- 第一个参数是 ArgLead（正在输入的当前参数），不是子命令：子命令要从 cmdline 里取。
 		complete = function(arglead, cmdline)
 			local sub = (vim.split(cmdline or "", "%s+", { trimempty = true }))[2]
@@ -1031,6 +1056,9 @@ function M.setup(opts)
 				local paths = {}
 				for _, f in ipairs(spec_files()) do
 					paths[#paths + 1] = f.path
+				end
+				if sub == "sync" then
+					paths[#paths + 1] = "--dry-run"
 				end
 				return paths
 			end
