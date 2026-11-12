@@ -77,6 +77,8 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 | `<F10>` / `[T` | 上一站 | 同上 |
 | `<leader>Tt` | 站点列表 | 弹选择器，跳到**当前** tour 的任意一站（不是切换 tour） |
 | `<leader>To` | 切换导览 | 列出所有 spec，选中即载入另一份 tour；<C-d> 删除选中那份 |
+| `<leader>Tc` | 体检 spec | 等同 `:PiTour check`：锚点失效/行号漂移进 loclist（无参数=全部） |
+| `<leader>Ty` | 同步行号 | 等同 `:PiTour sync`：把漂移写回 spec（会改文件；先看可用 `:PiTour sync --dry-run`） |
 | `<leader>Tr` | 重载 spec | 代码改动后按 anchor 重新定位（只对最后载入的那份生效） |
 | `<leader>Ts` | 结束导览 | 清掉标记、浮条和 quickfix |
 

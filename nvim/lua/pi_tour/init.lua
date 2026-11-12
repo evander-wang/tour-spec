@@ -990,6 +990,8 @@ function M.setup(opts)
 		prev = "[T",
 		pick = "<leader>Tt",
 		list = "<leader>To",
+		check = "<leader>Tc",
+		sync = "<leader>Ty",
 		stop = "<leader>Ts",
 		reload = "<leader>Tr",
 	}, opts.keys or {})
@@ -1004,6 +1006,8 @@ function M.setup(opts)
 	map(keys.prev, M.prev, "tour: 上一站")
 	map(keys.pick, M.pick, "tour: 站点列表")
 	map(keys.list, M.list, "tour: 切换导览（多份 spec）")
+	map(keys.check, M.check, "tour: 体检 spec（锚点/漂移）")
+	map(keys.sync, M.sync, "tour: 同步行号（写回 spec）")
 	map(keys.stop, M.stop, "tour: 结束导览")
 	map(keys.reload, M.reload, "tour: 重载 spec")
 
