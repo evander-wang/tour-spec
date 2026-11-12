@@ -16,8 +16,8 @@ updated: "2026-11-11"
 5. 每站必填 anchor：该范围首行的原文（不含行号前缀，保留缩进）。代码改动后 nvim 和 HTML 都靠它重新定位，这是 spec 不会「用一次就废」的关键。
 6. 写 spec 到 /tmp/pi-tours/<slug>.json，spec.repo 填仓库绝对路径，file 用仓库相对路径；行号字段写 start / end（1-based），spec.name 写显示名（:PiTour list 里好认，不写就退到第一站标题）。
 7. 落盘后先跑 :PiTour check（或 nvim --headless 调 require('pi_tour').check()）验一遍 anchor 能不能命中，再交付——锚点失效不会报错，只会让高亮静默指错行。
-8. 渲染到 Neovim：用 nvim_vim_exec_lua 调 require('pi_tour').load('/tmp/pi-tours/<slug>.json')；插件目录为 ~/.pi/agent/tours/nvim。若 nvim 启动时已加载插件，等价命令是 :PiTour load <path>。
-9. 渲染成 HTML 地图：node ~/.pi/agent/tours/render.mjs /tmp/pi-tours/<slug>.json --open（--out 可指定输出路径）。
+8. 渲染到 Neovim：用 nvim_vim_exec_lua 调 require('pi_tour').load('/tmp/pi-tours/<slug>.json')；插件目录为 ~/.pi/agent/tour-spec/nvim。若 nvim 启动时已加载插件，等价命令是 :PiTour load <path>。
+9. 渲染成 HTML 地图：node ~/.pi/agent/tour-spec/render.mjs /tmp/pi-tours/<slug>.json --open（--out 可指定输出路径）。
 10. 交付时只说三件事：怎么走（]T / [T，<leader>Tt 看全部站点）、怎么停（<leader>Ts）、HTML 在哪。不要复述整条链——用户就是要自己看。
 ## Pitfalls
 - 行号会漂：不写 anchor 的 spec 在用户改动代码后就变成一堆错位的高亮，必填。

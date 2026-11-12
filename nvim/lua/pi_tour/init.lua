@@ -14,7 +14,7 @@
 --- 多份 spec 可以同时存在于磁盘，但同一时刻只有一份「活跃」导览：
 ---   :PiTour list（<leader>To）列出 spec_dirs 下的所有 spec，选中即切换。
 ---
---- spec 格式见仓库里的 skills/code-tour/SKILL.md（~/.pi/agent/tours 是软链）
+--- spec 格式见仓库里的 skills/code-tour/SKILL.md（~/.pi/agent/tour-spec 是软链）
 
 local M = {}
 

@@ -8,7 +8,7 @@
 
 | 东西 | 怎么被使用 | 谁负责加载 |
 |---|---|---|
-| `nvim/lua/pi_tour/init.lua` + `nvim/pi-tour.lua` | Neovim 插件 | nvim（lazy.nvim 读 `~/.config/nvim/lua/plugins/pi-tour.lua`） |
+| `nvim/lua/pi_tour/init.lua` + `nvim/tour-spec.lua` | Neovim 插件 | nvim（lazy.nvim 读 `~/.config/nvim/lua/plugins/tour-spec.lua`） |
 | `render.mjs` | CLI，`node render.mjs spec.json` | 手动调用，无安装 |
 | `skills/code-tour/SKILL.md` | agent 的生产约束 | **Pi 的 skill 注册机制**（见下） |
 
@@ -41,7 +41,7 @@ Pi 的 skill 来源只有三类（`dist/core/skills.js` 的 `loadSkills()`）：
 
 （见 `pi-hermes-memory/src/index.ts` 的 `skillPaths` 构造）
 
-所以本仓库的 skill 挂在 `~/.pi/agent/pi-hermes-memory/skills/code-tour`——那条 symlink 指回 `~/src/pi-tours/skills/code-tour`。**这是必须在机器上做的一步，仓库里做不了。**
+所以本仓库的 skill 挂在 `~/.pi/agent/pi-hermes-memory/skills/code-tour`——那条 symlink 指回 `~/src/tour-spec/skills/code-tour`。**这是必须在机器上做的一步，仓库里做不了。**
 
 ### 确定性验证（别用 `pi --print` 问模型）
 

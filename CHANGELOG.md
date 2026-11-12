@@ -7,6 +7,21 @@ spec 不在本仓库里，但它决定导览指到哪几行，指错比代码 bu
 
 ## [Unreleased]
 
+### Changed
+
+**仓库改名 `pi-tours` → `tour-spec`**（只改仓库名与安装路径，命令与模块名不变）
+
+| 项 | 旧 | 新 |
+|---|---|---|
+| GitHub 仓库 | `evander-wang/pi-tours` | `evander-wang/tour-spec` |
+| 本地开发副本 | `~/src/pi-tours` | `~/src/tour-spec` |
+| 安装软链 | `~/.pi/agent/tours` | `~/.pi/agent/tour-spec` |
+| nvim 插件声明 | `nvim/pi-tour.lua`、`lua/plugins/pi-tour.lua` | `nvim/tour-spec.lua`、`lua/plugins/tour-spec.lua` |
+| lazy 插件名 | `name = "pi-tour"` | `name = "tour-spec"` |
+
+**不变**：Lua 模块 `pi_tour`、命令 `:PiTour`、快捷键、quickfix 标题前缀 `pi-tour: `、spec 数据目录 `/tmp/pi-tours`。
+改名理由是原名暗示"Pi 扩展"，而本仓库实际是「一份 spec + 两个消费端（nvim 插件 / HTML CLI）」。
+
 ### Specs
 
 **`tool-params-source.json` — `:PiTour sync` 抹平 6 站行号漂移（12 个数字）**

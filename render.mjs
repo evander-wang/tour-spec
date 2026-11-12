@@ -3,7 +3,7 @@
  * render.mjs — tour spec → 一张能「一眼看全」的代码地图（自包含单文件 HTML）
  *
  * 用法：
- *   node ~/.pi/agent/tours/render.mjs /tmp/pi-tours/xxx.json [--out /tmp/x.html] [--open]
+ *   node ~/.pi/agent/tour-spec/render.mjs /tmp/pi-tours/xxx.json [--out /tmp/x.html] [--open]
  *
  * 地图怎么读：
  *   纵向 = 调用链顺序（从上往下就是执行流）

@@ -1,4 +1,4 @@
-# pi-tour — 链路导览
+# tour-spec — 链路导览
 
 把一段跨函数/跨文件的执行路径做成「分站导览」：一份 tour spec（JSON），同时渲染成
 
@@ -12,13 +12,13 @@
 | 路径 | 作用 |
 |---|---|
 | `nvim/lua/pi_tour/init.lua` | Neovim 插件本体 |
-| `nvim/pi-tour.lua` | lazy.nvim 插件声明（拷／symlink 到 `~/.config/nvim/lua/plugins/`） |
+| `nvim/tour-spec.lua` | lazy.nvim 插件声明（拷／symlink 到 `~/.config/nvim/lua/plugins/`） |
 | `render.mjs` | spec → 单文件 HTML 代码地图，无依赖 |
 | `skills/code-tour/SKILL.md` | agent 侧的 spec 生产契约（**前置依赖**，见下节） |
 | `out/` | 想长期留档的 HTML（`/tmp` 会被系统清理）——已 gitignore |
 | `/tmp/pi-tours/<slug>.json` | 运行时 spec 的默认目录，`:PiTour list` 扫这里 |
 
-> 开发副本放 `~/src/pi-tours`（原始仓库），`~/.pi/agent/tours` 是指向它的 symlink——插件声明里的 `dir` 与本文所有路径都靠它稳定。
+> 开发副本放 `~/src/tour-spec`（原始仓库），`~/.pi/agent/tour-spec` 是指向它的 symlink——插件声明里的 `dir` 与本文所有路径都靠它稳定。
 
 ## 前置依赖：code-tour skill
 
@@ -27,7 +27,7 @@
 skill 正文就在本仓库的 `skills/code-tour/SKILL.md`，把它挂到 Pi 的 skill 目录即可（Pi 会跟随目录 symlink）：
 
 ```bash
-ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
+ln -s ~/src/tour-spec/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-tour
 ```
 
 验证：新开一个 Pi 会话，看 skill 列表里有 `code-tour`（或直接问「有哪些 code tour 相关的 skill」）。确定性验法见 `CONTRIBUTING.md`。
@@ -40,7 +40,7 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 
 ```json
 {
-  "repo": "/Users/wangjichao/src/pi-tours",
+  "repo": "/Users/wangjichao/src/tour-spec",
   "name": "手写示例：render.mjs 怎么读 spec",
   "steps": [
     {
@@ -148,20 +148,20 @@ pi-tour sync（试运行，未写入）: 1/1 份将有改动 · 2 处行号 · 0
 
 ```bash
 # 1) 开发副本放 ~/src（也就是原始仓库）
-git clone git@github.com:evander-wang/pi-tours.git ~/src/pi-tours
+git clone git@github.com:evander-wang/tour-spec.git ~/src/tour-spec
 
 # 2) 给 nvim 一个稳定路径（插件声明里的 dir 与本文示例都指向它）
-ln -s ~/src/pi-tours ~/.pi/agent/tours
+ln -s ~/src/tour-spec ~/.pi/agent/tour-spec
 
 # 3) 让 Neovim 启动时加载插件（symlink 或 cp 都行）
 mkdir -p ~/.config/nvim/lua/plugins
-ln -s ~/.pi/agent/tours/nvim/pi-tour.lua ~/.config/nvim/lua/plugins/pi-tour.lua
+ln -s ~/.pi/agent/tour-spec/nvim/tour-spec.lua ~/.config/nvim/lua/plugins/tour-spec.lua
 
 # 4) spec 目录（agent 会往这里写；也可 --out 到别处长期留档）
 mkdir -p /tmp/pi-tours
 ```
 
-前置的 code-tour skill 按上一节自己挂。验一下：重启 nvim 后 `:PiTour status` 不报错、`<leader>To` 能弹选择器；`node ~/.pi/agent/tours/render.mjs <spec.json> --open` 能出 HTML。
+前置的 code-tour skill 按上一节自己挂。验一下：重启 nvim 后 `:PiTour status` 不报错、`<leader>To` 能弹选择器；`node ~/.pi/agent/tour-spec/render.mjs <spec.json> --open` 能出 HTML。
 
 ## 开发循环
 
@@ -181,8 +181,8 @@ mkdir -p /tmp/pi-tours
 vim -c 'lua require("pi_tour").load("/tmp/pi-tours/xxx.json")'
 #    或已在 nvim 里：:PiTour load /tmp/pi-tours/xxx.json
 # 3) 渲染成 HTML 代码地图
-node ~/.pi/agent/tours/render.mjs /tmp/pi-tours/xxx.json --open
-node ~/.pi/agent/tours/render.mjs /tmp/pi-tours/xxx.json --out ~/.pi/agent/tours/out/xxx.html
+node ~/.pi/agent/tour-spec/render.mjs /tmp/pi-tours/xxx.json --open
+node ~/.pi/agent/tour-spec/render.mjs /tmp/pi-tours/xxx.json --out ~/.pi/agent/tour-spec/out/xxx.html
 ```
 
 ## spec 格式
