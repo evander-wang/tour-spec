@@ -8,7 +8,7 @@
 ---
 --- 用法（由 agent 或你自己调用）：
 ---   require("pi_tour").load("/tmp/pi-tours/xxx.json")
----   :PiTour load /tmp/pi-tours/xxx.json | list | check | rm | next | prev | pick | stop | status
+---   :PiTour load /tmp/pi-tours/xxx.json | list | check | sync | rm | next | prev | pick | stop | status
 ---   (:PiTour! rm <path> = 跳过确认直接删，无 UI 时只能用这个)
 ---
 --- 多份 spec 可以同时存在于磁盘，但同一时刻只有一份「活跃」导览：
@@ -756,6 +756,147 @@ function M.check(target)
 end
 
 -- ---------------------------------------------------------------------------
+-- 同步：把锚点解出来的真实行号写回 spec（源码一改，行号就旧了）
+-- ---------------------------------------------------------------------------
+
+-- 只改「一串数字」，不重新编码整个 JSON：spec 是人工可读的、一次一行一字段。
+-- 排版不符合预期就拒绝，而不是把文件重排成看不出改了什么的样子。
+local function patch_spans(lines, updates)
+	local total = #updates
+	local n_start, n_end = 0, 0
+	for _, l in ipairs(lines) do
+		if l:match('^%s*"start":%s*%d+,?%s*$') then
+			n_start = n_start + 1
+		elseif l:match('^%s*"end":%s*%d+,?%s*$') then
+			n_end = n_end + 1
+		end
+	end
+	if n_start ~= total or n_end ~= total then
+		return nil,
+			string.format("排版不是一行一个字段（start=%d / end=%d / steps=%d），不改写", n_start, n_end, total)
+	end
+
+	local changed = {}
+	local si, ei = 0, 0
+	for i, line in ipairs(lines) do
+		local key
+		if line:match('^%s*"start":%s*%d+,?%s*$') then
+			si = si + 1
+			key = "start"
+			local want = updates[si].start
+			local new = line:gsub('("start":%s*)%d+', "%1" .. want, 1)
+			if new ~= line then
+				changed[#changed + 1] = { station = si, key = key, before = trim(line), after = trim(new) }
+				lines[i] = new
+			end
+		elseif line:match('^%s*"end":%s*%d+,?%s*$') then
+			ei = ei + 1
+			key = "end"
+			local want = updates[ei]["end"]
+			local new = line:gsub('("end":%s*)%d+', "%1" .. want, 1)
+			if new ~= line then
+				changed[#changed + 1] = { station = ei, key = key, before = trim(line), after = trim(new) }
+				lines[i] = new
+			end
+		end
+	end
+	return changed
+end
+
+--- 把每站锚点解出的真实行号写回 spec。
+--- 锚点失效 / 文件缺失 / 没写 anchor 的站一律不动（不猜），单独列出等人改。
+--- @param target? string 指定 spec 路径；不传则同步 spec_dirs 里的全部
+function M.sync(target)
+	local files
+	if target and target ~= "" then
+		files = { { path = vim.fn.fnamemodify(vim.fn.expand(target), ":p") } }
+	else
+		files = spec_files()
+	end
+	if #files == 0 then
+		vim.notify("pi-tour sync: 没找到 spec（" .. table.concat(spec_dirs(), ", ") .. "/*.json）", vim.log.levels.WARN)
+		return
+	end
+
+	local touched, unchanged, total_fixes, problems = 0, 0, 0, {}
+	for _, f in ipairs(files) do
+		local slug = vim.fn.fnamemodify(f.path, ":t:r")
+		local lines = vim.fn.readfile(f.path)
+		local ok_dec, spec = false, nil
+		if #lines > 0 then
+			ok_dec, spec = pcall(vim.json.decode, table.concat(lines, "\n"))
+		end
+		if not ok_dec or type(spec) ~= "table" or type(spec.steps) ~= "table" or #spec.steps == 0 then
+			problems[#problems + 1] = string.format("[%s] spec 解析失败，跳过", slug)
+		else
+			local repo = vim.fn.fnamemodify((spec.repo and spec.repo ~= "") and spec.repo or vim.fn.getcwd(), ":p")
+			local updates = {}
+			for i, st in ipairs(spec.steps) do
+				local rel = st.file or ""
+				local abs = vim.fn.fnamemodify(rel:sub(1, 1) == "/" and rel or (repo .. rel), ":p")
+				local old_start, old_end = step_span(st)
+				updates[i] = { start = old_start, ["end"] = old_end }
+
+				if vim.fn.filereadable(abs) == 0 then
+					problems[#problems + 1] = string.format("[%s] 站 %d 文件不存在: %s", slug, i, rel)
+				elseif not st.anchor or st.anchor == "" then
+					problems[#problems + 1] = string.format("[%s] 站 %d 没有 anchor，行号不会自愈", slug, i)
+				else
+					local tlines = vim.fn.readfile(abs)
+					local hit = find_anchor(tlines, old_start, st.anchor)
+					if not hit then
+						problems[#problems + 1] = string.format("[%s] 站 %d 锚点失效（不猜）: %s", slug, i, rel)
+					else
+						updates[i].start = hit
+						updates[i]["end"] = math.min(#tlines, math.max(hit, hit + (old_end - old_start)))
+					end
+				end
+			end
+
+			local changed, err = patch_spans(lines, updates)
+			if not changed then
+				problems[#problems + 1] = string.format("[%s] %s", slug, err)
+			elseif #changed == 0 then
+				unchanged = unchanged + 1
+			else
+				vim.fn.writefile(lines, f.path)
+				touched = touched + 1
+				total_fixes = total_fixes + #changed
+				for _, c in ipairs(changed) do
+					problems[#problems + 1] = string.format(
+						"[%s] 站 %d  %s: %d → %d",
+						slug,
+						c.station,
+						c.key,
+							tonumber(c.before:match("%d+")),
+							tonumber(c.after:match("%d+"))
+					)
+				end
+			end
+		end
+	end
+
+	if #problems == 0 then
+		vim.notify(string.format("pi-tour sync: %d 份 spec 无需改动", #files), vim.log.levels.INFO)
+		return
+	end
+
+	vim.notify(
+		string.format(
+			"pi-tour sync: %d/%d 份已更新 · %d 处行号 · %d 份无变化",
+			touched,
+			#files,
+			total_fixes,
+			unchanged
+		),
+		total_fixes > 0 and vim.log.levels.INFO or vim.log.levels.WARN
+	)
+	for _, p in ipairs(problems) do
+		print("  " .. p)
+	end
+end
+
+-- ---------------------------------------------------------------------------
 -- 删除：spec 和它的同名 HTML 产物一起清
 -- ---------------------------------------------------------------------------
 
@@ -866,6 +1007,8 @@ function M.setup(opts)
 			M.list()
 		elseif sub == "check" then
 			M.check(args[2])
+		elseif sub == "sync" then
+			M.sync(args[2])
 		elseif sub == "rm" or sub == "delete" then
 			M.delete(args[2], c.bang)
 		elseif sub == "stop" then
@@ -880,18 +1023,18 @@ function M.setup(opts)
 	end, {
 		nargs = "*",
 		bang = true, -- :PiTour! rm <path> = 跳过确认
-		desc = "pi-tour: load <path> | list | check [path] | rm <path> | next | prev | pick | stop | reload | goto <n>",
+		desc = "pi-tour: load <path> | list | check [path] | sync [path] | rm <path> | next | prev | pick | stop | reload | goto <n>",
 		-- 第一个参数是 ArgLead（正在输入的当前参数），不是子命令：子命令要从 cmdline 里取。
 		complete = function(arglead, cmdline)
 			local sub = (vim.split(cmdline or "", "%s+", { trimempty = true }))[2]
-			if sub == "load" or sub == "reload" or sub == "check" or sub == "rm" or sub == "delete" then
+			if sub == "load" or sub == "reload" or sub == "check" or sub == "sync" or sub == "rm" or sub == "delete" then
 				local paths = {}
 				for _, f in ipairs(spec_files()) do
 					paths[#paths + 1] = f.path
 				end
 				return paths
 			end
-			return { "load", "list", "check", "rm", "next", "prev", "pick", "stop", "reload", "goto", "status" }
+			return { "load", "list", "check", "sync", "rm", "next", "prev", "pick", "stop", "reload", "goto", "status" }
 		end,
 	})
 end

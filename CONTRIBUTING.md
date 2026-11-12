@@ -76,6 +76,7 @@ console.log("有 code-tour:", names.includes("code-tour"));
 - **spec 字段名不许再改**：`start` / `end` 是权威写法（`line` / `from` / `to` 作为兼容别名保留）。改错字段名不会报错，只会静默退到第 1 行——历史上就是这么坑过一次。
 - **改行为要同步 README 的表格**：快捷键表、命令表、`:PiTour check` 的级别说明，三处都在 README。
 - **anchor 是本仓库最关键的契约**：`resolve_lnum` 找不到 anchor 时会静默退回原行号，所以任何影响定位的改动都要跑 `:PiTour check` 看有没有新增 `E`。
+- **`sync` 只改数字、不猜锚点**：`check` 报 `E` 时必须人看着新代码改 anchor；`sync` 遇到失效锚点会跳过并在输出里点名。
 - **nvim 与 HTML 必须一致**：`render.mjs` 的 anchor 解析、range 平移要与 `init.lua` 保持一致（同为“多处命中取最近”“首行挪多少尾行挪多少”）。
 
 ## 提交前自检
@@ -86,6 +87,9 @@ nvim --headless -c 'lua local T=require("pi_tour"); T.setup(); T.load("/tmp/pi-t
 
 # 2) 全量体检：应只有已知的 W（漂移/超界），E 必须为 0
 nvim --headless -c 'lua require("pi_tour").check()' -c 'qa!'
+
+# 2b) 有 W 就写回 spec（锚点失效的站不会被动，得人工改）
+nvim --headless -c 'lua require("pi_tour").sync()' -c 'qa!'
 
 # 3) HTML 与 nvim 的站号/行号一致
 node render.mjs /tmp/pi-tours/<slug>.json --out /tmp/x.html

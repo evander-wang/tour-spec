@@ -86,6 +86,7 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 :PiTour load /tmp/pi-tours/<slug>.json   " 载入（或 :PiTour load 后 Tab 补全）
 :PiTour list                             " 选择器：切换已渲染过的 tour
 :PiTour check [path]                     " 体检 spec：anchor 还能不能命中（结果进 loclist）
+:PiTour sync [path]                      " 把锚点解出的真实行号写回 spec（锚点失效的不猜）
 :PiTour rm <path>                        " 删除一份 spec + 同名 html（弹确认）
 :PiTour! rm <path>                       " 同上但跳过确认（无 UI 时只能用这个）
 :PiTour next | prev | goto <n>            " 步进
@@ -111,8 +112,25 @@ ln -s ~/src/pi-tours/skills/code-tour ~/.pi/agent/pi-hermes-memory/skills/code-t
 | `E` 锚点失效 | 首行原文在文件里找不到了，`resolve_lnum` 会静默退回 spec 里写的行号 | 导览看起来正常但高亮指错，改 anchor 或重做这份 spec |
 | `E` 没有 anchor | 代码一改行号就失准 | 补 anchor |
 | `E` 文件不存在 | 文件被改名/移动/删除 | 改 `file` 路径 |
-| `W` 行号漂移 | 锚点命中，但落在与 spec 不同的行（已被自动修正） | 不用管，看情况回写 spec |
-| `W` range 超界 | `end` 超过文件实际行数 | 把 `end` 改小 |
+| `W` 行号漂移 | 锚点命中，但落在与 spec 不同的行（已被自动修正） | `:PiTour sync` 写回真实行号 |
+| `W` range 超界 | `end` 超过文件实际行数 | `:PiTour sync` 会把 `end` 钳到文件末尾 |
+
+### 把漂移写回去：`:PiTour sync`
+
+`check` 只告诉你漂了多少，`sync` 把结果落回 spec：命中锚点的站，`start` 改成真实行号，`end` 按原来的站长同步平移（超文件末尾就钳住）。
+
+```vim
+:PiTour sync                              " 同步 spec_dirs 里全部
+:PiTour sync /tmp/pi-tours/xxx.json       " 只同步一份
+```
+
+三个边界：
+
+- **锚点失效（`E`）的站一律不动**——不猜。改锚点必须人看着新代码写。
+- 只改数字本身，不重新编码 JSON：排版不是「一行一个字段」时直接拒绕（不会把文件重排成看不出改了什么）。
+- 幂等：再跑一次就是「无需改动」。
+
+> 备份别用 `*.json` 结尾！`spec_dirs` 扫的是 `*.json`，`foo.presync.json` 会被当成第 N 份 spec 一起体检/同步。用 `foo.json.bak` 或放到 spec_dirs 之外的目录。
 
 ## 在新机器上安装
 
